@@ -78,7 +78,7 @@ int main() {
 
     uart_tx_packet = NULL;
     uart_tx_flag = 0;
-    uartInit(&cmdPushFunc);
+    uartInit(RADIO_RXPQ_MAX_SIZE, RADIO_TXPQ_MAX_SIZE, &cmdPushFunc);
 
     //amsEncoderSetup();
     mpuSetup(1);
@@ -94,11 +94,7 @@ int main() {
         radioProcess();
 
         // Send outgoing uart packets
-        if(uart_tx_flag) {
-            uartSendPacket(uart_tx_packet);
-            uart_tx_flag = 0;
-        }
-
+        uartProcess();
 
         // move received packets to function queue
         while (!radioRxQueueEmpty()) {
@@ -112,7 +108,7 @@ int main() {
                     paySetStatus(newPacket->payload, 0);
                     // Data format will be LEN, CHK_LEN, 0x00, 0x71, STAT, TYPE, PAYLOAD, CSUM
                     paySetData(newPacket->payload, rx_packet->payload_length, rx_packet->payload->pld_data);
-                    uartSendPacket(newPacket);
+                    uartEnqueueTxPacket(newPacket);
                 }
 
                 cmdPushFunc(rx_packet);
